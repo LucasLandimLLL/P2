@@ -83,7 +83,7 @@ export default function ListaCartoes() {
             <Card.Actions>
               <Button
                 onPress={() =>
-                  navigation.push('Formartoes', {
+                  navigation.push('FormCartoes', {
                     acao: (cartaoAntigo, cartaoNovo) => editarCartao(item, cartaoAntigo, cartaoNovo),
                   })
                 }>

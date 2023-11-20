@@ -16,48 +16,94 @@ export default function FormCartao({ route }) {
   const [nomeCompleto, setNomeCompleto] = useState('');
   const [showMensagemErro, setShowMensagemErro] = useState(false);
 
+  const [errors, setErrors] = useState({
+    numeroCartao: '',
+    cvv: '',
+    validade: '',
+    cpf: '',
+  });
+
   useEffect(() => {
     if (cartaoAntigo) {
-      setNumeroCartao(cartaoAntigo.numeroCartao);
-      setCvv(cartaoAntigo.cvv);
-      setValidade(cartaoAntigo.validade);
-      setCpf(cartaoAntigo.cpf);
-      setNomeCompleto(cartaoAntigo.nomeCompleto);
+      setNumeroCartao(cartaoAntigo.numeroCartao || '');
+      setCvv(cartaoAntigo.cvv || '');
+      setValidade(cartaoAntigo.validade || '');
+      setCpf(cartaoAntigo.cpf || '');
+      setNomeCompleto(cartaoAntigo.nomeCompleto || '');
     }
   }, [cartaoAntigo]);
 
-  function salvar() {
-    if (
-      numeroCartao === '' ||
-      cvv === '' ||
-      validade === '' ||
-      cpf === '' ||
-      nomeCompleto === ''
-    ) {
+  function validarNumeroCartao(numeroCartao) {
+    const regex = /^[0-9]{4} ?[0-9]{4} ?[0-9]{4} ?[0-9]{4}$/;
+    return regex.test(numeroCartao);
+  }
+
+  function validarCVV(cvv) {
+    const regex = /^[0-9]{3}$/;
+    return regex.test(cvv);
+  }
+
+  function validarValidade(validade) {
+    const regex = /^(0[1-9]|1[0-2])\/\d{2}$/;
+    return regex.test(validade);
+  }
+
+  function validarCPF(cpf) {
+    const regex = /^\d{3}\.\d{3}\.\d{3}\-\d{2}$/;
+    return regex.test(cpf);
+  }
+
+  async function salvar() {
+    const errorsCopy = { ...errors };
+    errorsCopy.numeroCartao = validarNumeroCartao(numeroCartao) ? '' : 'Número de cartão inválido';
+    errorsCopy.cvv = validarCVV(cvv) ? '' : 'CVV inválido';
+    errorsCopy.validade = validarValidade(validade) ? '' : 'Data de validade inválida';
+    errorsCopy.cpf = validarCPF(cpf) ? '' : 'CPF inválido';
+
+    setErrors(errorsCopy);
+
+    const hasErrors = Object.values(errorsCopy).some((error) => error !== '');
+
+    if (hasErrors) {
       setShowMensagemErro(true);
-    } else {
-      setShowMensagemErro(false);
+      return;
+    }
 
-      const cartaoNovo = {
-        numeroCartao: numeroCartao,
-        cvv: cvv,
-        validade: validade,
-        cpf: cpf,
-        nomeCompleto: nomeCompleto,
-      };
+    setShowMensagemErro(false);
 
+    try {
       if (cartaoAntigo) {
-        acao(cartaoAntigo, cartaoNovo);
+        await acao(cartaoAntigo.id, {
+          numeroCartao,
+          cvv,
+          validade,
+          cpf,
+          nomeCompleto,
+        });
+
+        Toast.show({
+          type: 'success',
+          text1: 'Cartão editado com sucesso!',
+        });
       } else {
-        acao(cartaoNovo);
+        await acao({
+          numeroCartao,
+          cvv,
+          validade,
+          cpf,
+          nomeCompleto,
+        });
+
+        Toast.show({
+          type: 'success',
+          text1: 'Cartão adicionado com sucesso!',
+        });
       }
 
-      Toast.show({
-        type: 'success',
-        text1: 'Cartão salvo com sucesso!',
-      });
-
-      navigation.goBack();
+      
+      navigation.navigate('Listacartoes');  
+    } catch (error) {
+      console.error('Erro ao realizar ação:', error);
     }
   }
 
@@ -80,6 +126,9 @@ export default function FormCartao({ route }) {
             value={numeroCartao}
             onChangeText={(text) => setNumeroCartao(text)}
           />
+          {errors.numeroCartao !== '' && (
+            <Text style={{ color: 'red' }}>{errors.numeroCartao}</Text>
+          )}
           <TextInputMask
             style={styles.input}
             type={'custom'}
@@ -91,6 +140,7 @@ export default function FormCartao({ route }) {
             value={cvv}
             onChangeText={(text) => setCvv(text)}
           />
+          {errors.cvv !== '' && <Text style={{ color: 'red' }}>{errors.cvv}</Text>}
           <TextInputMask
             style={styles.input}
             type={'custom'}
@@ -100,6 +150,9 @@ export default function FormCartao({ route }) {
             value={validade}
             onChangeText={(text) => setValidade(text)}
           />
+          {errors.validade !== '' && (
+            <Text style={{ color: 'red' }}>{errors.validade}</Text>
+          )}
           <TextInputMask
             style={styles.input}
             type={'cpf'}
@@ -107,6 +160,7 @@ export default function FormCartao({ route }) {
             value={cpf}
             onChangeText={(text) => setCpf(text)}
           />
+          {errors.cpf !== '' && <Text style={{ color: 'red' }}>{errors.cpf}</Text>}
           <TextInput
             style={styles.input}
             label={'Nome Completo'}
